@@ -4149,6 +4149,14 @@ function renderVerificador() {
     </div>`;
   }
 
+  // Sempre atualiza as opções de marca (podem ter chegado depois do primeiro render)
+  const marcSel = document.getElementById('marc-verif');
+  if (marcSel && allMarcas.length > 0) {
+    const curVal = marcSel.value;
+    marcSel.innerHTML = `<option value="">Todas</option>` +
+      allMarcas.map(m=>`<option value="${m}"${m===curVal?' selected':''}>${m}</option>`).join('');
+  }
+
   const srch    = document.getElementById('srch-verif')?.value.toLowerCase() || '';
   const canal   = document.getElementById('canal-verif')?.value || '';
   const marcFlt = document.getElementById('marc-verif')?.value || '';
