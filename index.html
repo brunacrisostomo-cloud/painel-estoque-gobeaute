@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -453,6 +453,55 @@ td{padding:9px 12px;vertical-align:middle;color:var(--preto);}
 .b-pend {background:var(--blue-lt);color:#1e40af;}
 .b-late {background:var(--red-lt);color:#991b1b;}
 .b-prog {background:var(--cinza-100);color:var(--text2);}
+
+/* ── KPI MODAL ── */
+#kpi-modal{
+  position:fixed;inset:0;z-index:5000;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(3px);
+}
+#kpi-modal.show{display:flex;}
+.kpi-modal-card{
+  background:var(--branco);border-radius:12px;
+  width:min(680px,95vw);max-height:80vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.22);
+  border-top:3px solid var(--azul);
+  overflow:hidden;
+}
+.kpi-modal-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.kpi-modal-title{font-size:14px;font-weight:700;color:var(--preto);}
+.kpi-modal-close{
+  background:none;border:none;cursor:pointer;
+  font-size:20px;color:var(--text3);line-height:1;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;transition:background .12s;
+}
+.kpi-modal-close:hover{background:var(--cinza-100);color:var(--preto);}
+.kpi-modal-body{overflow-y:auto;padding:16px 20px;flex:1;}
+.kpi-modal-body table{width:100%;border-collapse:collapse;font-size:12px;}
+.kpi-modal-body thead th{
+  padding:7px 10px;text-align:left;
+  font-size:10px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text3);
+  border-bottom:1px solid var(--border);
+  background:var(--cinza-100);white-space:nowrap;
+}
+.kpi-modal-body tbody tr{border-bottom:1px solid var(--cinza-100);}
+.kpi-modal-body tbody tr:hover td{background:var(--cinza-100);}
+.kpi-modal-body td{padding:8px 10px;color:var(--preto);}
+.kpi-modal-empty{text-align:center;color:var(--text3);padding:32px;font-size:13px;}
+
+/* ── SORTABLE HEADERS ── */
+thead th.sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+thead th.sortable:hover{background:var(--cinza-200);}
+thead th.sortable .sort-icon{margin-left:4px;opacity:.4;font-size:9px;}
+thead th.sortable.sorted-asc .sort-icon,
+thead th.sortable.sorted-desc .sort-icon{opacity:1;}
 
 /* ── STATES ── */
 .loading-box,.empty-box{
@@ -1003,6 +1052,17 @@ td{padding:9px 12px;vertical-align:middle;color:var(--preto);}
   </div>
 </main>
 
+<!-- KPI MODAL -->
+<div id="kpi-modal" onclick="if(event.target===this)closeKpiModal()">
+  <div class="kpi-modal-card">
+    <div class="kpi-modal-hdr">
+      <span class="kpi-modal-title" id="kpi-modal-title">SKUs</span>
+      <button class="kpi-modal-close" onclick="closeKpiModal()">&#x2715;</button>
+    </div>
+    <div class="kpi-modal-body" id="kpi-modal-body"></div>
+  </div>
+</div>
+
 <!-- INPUTS PASSWORD MODAL -->
 <div id="inputs-lock-overlay">
   <div class="lock-card">
@@ -1494,11 +1554,17 @@ function brandChConfig(brand) {
 // Verifica se label de coluna de estoque pertence ao canal selecionado
 function stockColMatchesCanal(label, canal) {
   if (!canal) return true;
-  const k = colKey(label);
-  if (canal === 'ecomm')   return (k.includes('ECOMM') || k.includes('ECOM') || k.includes('VAREJO')) && !k.includes('ATACADO') && !k.includes(' MP');
-  if (canal === 'mp')      return k.includes(' MP') || k.includes('MKT') || k.includes('MARKET');
+  const k  = colKey(label);                        // spaces removed, uppercase, no accents
+  const u  = (label||'').toUpperCase();             // uppercase with spaces preserved (for boundary checks)
+  if (canal === 'ecomm')   return (k.includes('ECOMM') || k.includes('ECOM') || k.includes('VAREJO')) && !k.includes('ATACADO') && !_labelHasMP(u);
+  if (canal === 'mp')      return _labelHasMP(u) || k.includes('MKT') || k.includes('MARKET') || k.includes('MKTPLACE') || k.includes('MKTP');
   if (canal === 'atacado') return k.includes('ATACADO') || k.includes('ATAC');
   return true;
+}
+// Returns true if the uppercased label (spaces intact) has MP as a word-boundary token
+function _labelHasMP(u) {
+  // Match MP surrounded by word boundaries: start/end of string or non-letter characters
+  return /(?:^|[^A-Z])MP(?:[^A-Z]|$)/.test(u);
 }
 
 // ── /CHANNEL CONFIG ─────────────────────────────────────────────────────
@@ -1908,9 +1974,11 @@ function cardsHtml(items) {
     'cv-purple':'#6d28d9','cv-green':'#10b981','cv-yellow':'#f59e0b',
     'cv-red':'#ef4444','cv-teal':'#0d9488','cv-blue':'#2659a5'
   };
-  return `<div class="cards">${items.map(([label,val,cls]) => {
+  return `<div class="cards">${items.map(([label,val,cls,onclickFn]) => {
     const barClr = clrMap[cls] || '#2659a5';
-    return `<div class="card" style="--bar:${barClr}">
+    const clickAttr = onclickFn ? ` onclick="${onclickFn}" style="--bar:${barClr};cursor:pointer"` : ` style="--bar:${barClr}"`;
+    const hoverStyle = onclickFn ? ` onmouseenter="this.style.boxShadow='0 4px 14px rgba(38,89,165,.18)'" onmouseleave="this.style.boxShadow=''"` : '';
+    return `<div class="card"${clickAttr}${hoverStyle}>
       <div class="card-label">${label}</div>
       <div class="card-val ${cls}">${val}</div>
     </div>`;
@@ -1941,6 +2009,132 @@ function brandBlock(brand, rows, tableHtml) {
       <div class="tbl-wrap">${tableHtml}</div>
     </div>
   </div>`;
+}
+
+// ── KPI MODAL ───────────────────────────────────────────────────────
+function openKpiModal(title, html) {
+  document.getElementById('kpi-modal-title').textContent = title;
+  document.getElementById('kpi-modal-body').innerHTML = html;
+  document.getElementById('kpi-modal').classList.add('show');
+}
+function closeKpiModal() {
+  document.getElementById('kpi-modal').classList.remove('show');
+}
+
+function showZerados() {
+  const cd    = document.getElementById('cd-est')?.value   || '';
+  const canal = document.getElementById('canal-est')?.value|| '';
+  const zeros = estoqueRows.filter(r =>
+    r.stockValues.filter(s => colMatchesCD(s.label, cd) && stockColMatchesCanal(s.label, canal))
+                 .every(s => !s.value || s.value <= 0)
+  );
+  if (!zeros.length) {
+    openKpiModal('SKUs Zerados', '<div class="kpi-modal-empty">Nenhum SKU zerado com os filtros atuais.</div>');
+    return;
+  }
+  const rows = zeros.map(r =>
+    `<tr><td class="td-ean">${r.ean||'—'}</td><td><span class="td-sku">${r.sku||'—'}</span></td><td>${r.nome||'—'}</td><td>${r.brand||'—'}</td></tr>`
+  ).join('');
+  openKpiModal(`SKUs Zerados (${zeros.length})`,
+    `<table><thead><tr><th>EAN</th><th>SKU</th><th>Produto</th><th>Marca</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+function showCriticos() {
+  const canal = document.getElementById('canal-perm')?.value|| '';
+  function channelMin(r, ch) {
+    const cfg = brandChConfig(r.brand);
+    if (!cfg) return null;
+    const chKeys = ch ? [ch] : Object.keys(cfg);
+    const all = chKeys.flatMap(k => cfg[k] ? minPermOf(r, cfg[k].perms) : null)
+                       .filter(v => typeof v === 'number');
+    return all.length ? Math.min(...all) : null;
+  }
+  const base = estoqueRows.filter(r => r.permValues.length > 0 || r.menorPerm);
+  const criticos = base.filter(r => {
+    const mn = channelMin(r, canal);
+    return mn !== null && mn <= 30;
+  });
+  if (!criticos.length) {
+    openKpiModal('Críticos ≤30d', '<div class="kpi-modal-empty">Nenhum SKU crítico com os filtros atuais.</div>');
+    return;
+  }
+  const sorted = [...criticos].sort((a,b) => (channelMin(a,canal)??Infinity) - (channelMin(b,canal)??Infinity));
+  const rows = sorted.map(r => {
+    const mn = channelMin(r, canal);
+    return `<tr><td><span class="td-sku">${r.sku||'—'}</span></td><td>${r.nome||'—'}</td><td>${r.brand||'—'}</td><td class="td-num"><span class="min-tag perm-ok">${mn} d</span></td></tr>`;
+  }).join('');
+  openKpiModal(`Críticos ≤30d (${criticos.length})`,
+    `<table><thead><tr><th>SKU</th><th>Produto</th><th>Marca</th><th>Menor Perm.</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+function showAcima60() {
+  const canal = document.getElementById('canal-perm')?.value|| '';
+  function channelMin(r, ch) {
+    const cfg = brandChConfig(r.brand);
+    if (!cfg) return null;
+    const chKeys = ch ? [ch] : Object.keys(cfg);
+    const all = chKeys.flatMap(k => cfg[k] ? minPermOf(r, cfg[k].perms) : null)
+                       .filter(v => typeof v === 'number');
+    return all.length ? Math.min(...all) : null;
+  }
+  const base = estoqueRows.filter(r => r.permValues.length > 0 || r.menorPerm);
+  const over60 = base.filter(r => {
+    const mn = channelMin(r, canal);
+    return mn !== null && mn > 60;
+  });
+  if (!over60.length) {
+    openKpiModal('Acima 60d', '<div class="kpi-modal-empty">Nenhum SKU acima de 60d com os filtros atuais.</div>');
+    return;
+  }
+  const sorted = [...over60].sort((a,b) => (channelMin(a,canal)??Infinity) - (channelMin(b,canal)??Infinity));
+  const rows = sorted.map(r => {
+    const mn = channelMin(r, canal);
+    const cls = mn > 60 ? 'perm-bad' : 'perm-warn';
+    return `<tr><td><span class="td-sku">${r.sku||'—'}</span></td><td>${r.nome||'—'}</td><td>${r.brand||'—'}</td><td class="td-num"><span class="min-tag ${cls}">${mn} d</span></td></tr>`;
+  }).join('');
+  openKpiModal(`Acima 60d (${over60.length})`,
+    `<table><thead><tr><th>SKU</th><th>Produto</th><th>Marca</th><th>Menor Perm.</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+
+// ── SORTABLE TABLES ──────────────────────────────────────────────────
+let _sortState = { col: null, dir: 1 };
+
+function sortTable(thEl, colIdx, numeric) {
+  const table = thEl.closest('table');
+  if (!table) return;
+
+  // Determine toggle direction (per-table tracking via dataset)
+  const prevCol = parseInt(table.dataset.sortCol ?? '-1', 10);
+  const prevDir = parseInt(table.dataset.sortDir ?? '1', 10);
+  const newDir  = (prevCol === colIdx) ? -prevDir : 1;
+  table.dataset.sortCol = colIdx;
+  table.dataset.sortDir = newDir;
+
+  // Update header indicators
+  table.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sorted-asc','sorted-desc');
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = '⇅';
+  });
+  thEl.classList.add(newDir === 1 ? 'sorted-asc' : 'sorted-desc');
+  const icon = thEl.querySelector('.sort-icon');
+  if (icon) icon.textContent = newDir === 1 ? '▲' : '▼';
+
+  // Sort tbody rows
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const ta = (a.cells[colIdx]?.textContent || '').trim();
+    const tb = (b.cells[colIdx]?.textContent || '').trim();
+    if (numeric) {
+      const na = parseFloat(ta.replace(/[^\d.,\-]/g,'').replace(',','.')) || 0;
+      const nb = parseFloat(tb.replace(/[^\d.,\-]/g,'').replace(',','.')) || 0;
+      return (na - nb) * newDir;
+    }
+    return ta.localeCompare(tb, 'pt-BR', {sensitivity:'base'}) * newDir;
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 // ── RENDER ESTOQUE ───────────────────────────────────────────────────
@@ -1979,8 +2173,11 @@ function renderEstoque() {
           ))].filter(Boolean);
           const tbl = `<table>
             <thead><tr>
-              <th>EAN</th><th>SKU</th><th>Produto</th><th>Tipo</th>
-              ${stockLabels.map(l => `<th class="th-r" style="color:var(--green);font-size:11px">${l}</th>`).join('')}
+              <th class="sortable" onclick="sortTable(this,0,false)">EAN <span class="sort-icon">⇅</span></th>
+              <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+              <th class="sortable" onclick="sortTable(this,2,false)">Produto <span class="sort-icon">⇅</span></th>
+              <th>Tipo</th>
+              ${stockLabels.map((l,si) => `<th class="th-r sortable" onclick="sortTable(this,${4+si},true)" style="color:var(--green);font-size:11px">${l} <span class="sort-icon">⇅</span></th>`).join('')}
             </tr></thead>
             <tbody>
             ${bRows.map(r => {
@@ -2011,7 +2208,7 @@ function renderEstoque() {
   document.getElementById('body-est').innerHTML = cardsHtml([
     ['Total SKUs', rows.length, 'cv-purple'],
     ['Unidades (CD filtrado)', fmt(stockTotal), 'cv-green'],
-    ['SKUs Zerados', zeros, zeros>0?'cv-red':'cv-green'],
+    ['SKUs Zerados', zeros, zeros>0?'cv-red':'cv-green', 'showZerados()'],
     ['Marcas', brands, 'cv-teal'],
   ]) + content;
 }
@@ -2111,10 +2308,15 @@ function renderPermanencias() {
     const canais = canal ? [canal] : ['ecomm','mp','atacado'];
     const channelCols = canais.filter(ch => cfg && cfg[ch]);
     const CANAL_LABELS = { ecomm:'Ecommerce', mp:'Marketplace', atacado:'Atacado' };
-    const headers = channelCols.flatMap(ch => [
-      `<th class="th-r" style="font-size:10px;color:var(--teal)">${CANAL_LABELS[ch]} (menor perm.)</th>`,
-      `<th style="font-size:10px">Ação ${CANAL_LABELS[ch]}</th>`,
-    ]).join('');
+    let colIdx = 3; // SKU=0, Produto=1, Tipo=2
+    const headers = channelCols.flatMap(ch => {
+      const permIdx = colIdx++;
+      const acaoIdx = colIdx++;
+      return [
+        `<th class="th-r sortable" onclick="sortTable(this,${permIdx},true)" style="font-size:10px;color:var(--teal)">${CANAL_LABELS[ch]} (menor perm.) <span class="sort-icon">⇅</span></th>`,
+        `<th style="font-size:10px">Ação ${CANAL_LABELS[ch]}</th>`,
+      ];
+    }).join('');
     return headers;
   }
 
@@ -2130,7 +2332,9 @@ function renderPermanencias() {
           });
           const tbl = `<table>
             <thead><tr>
-              <th>SKU</th><th>Produto</th><th>Tipo</th>
+              <th class="sortable" onclick="sortTable(this,0,false)">SKU <span class="sort-icon">⇅</span></th>
+              <th class="sortable" onclick="sortTable(this,1,false)">Produto <span class="sort-icon">⇅</span></th>
+              <th>Tipo</th>
               ${buildHeader(br)}
             </tr></thead>
             <tbody>${sorted.map(buildRow).join('')}</tbody>
@@ -2141,10 +2345,10 @@ function renderPermanencias() {
 
   document.getElementById('body-perm').innerHTML = cardsHtml([
     ['SKUs',          rows.length,                         'cv-purple'],
-    ['Críticos ≤30d', criticos, criticos>0?'cv-red':'cv-green'],
+    ['Críticos ≤30d', criticos, criticos>0?'cv-red':'cv-green', 'showCriticos()'],
     ['Menor Perm.',   minGlobal!==null?minGlobal+' d':'—', 'cv-green'],
     ['Média',         avgGlobal!==null?Math.round(avgGlobal)+' d':'—','cv-teal'],
-    ['Acima 60d',     over60,  over60>0?'cv-yellow':'cv-green'],
+    ['Acima 60d',     over60,  over60>0?'cv-yellow':'cv-green', 'showAcima60()'],
   ]) + content;
 }
 
