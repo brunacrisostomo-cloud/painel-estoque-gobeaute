@@ -527,23 +527,27 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
 
 @media(max-width:768px){
   /* Layout */
-  .main { padding: 12px; }
+  .main { padding: 10px; padding-bottom: 74px; }
   .header { padding: 0 12px; height: 52px; }
   .header-subtitle, .header-divider { display: none; }
   .header-parent { font-size: 8px; }
   .header-right { gap: 6px; }
-  /* Primary tabs: horizontally scrollable, no wrap */
-  .tabs-primary {
+  /* Hide top tabs on mobile — bottom nav replaces them */
+  .tabs-primary { display: none !important; }
+  /* Show mobile bottom nav */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--branco);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+    z-index: 200;
     overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    flex-wrap: nowrap;
-    padding: 0 12px;
+    -webkit-overflow-scrolling: touch;
   }
-  .tabs-primary::-webkit-scrollbar { display: none; }
-  .tab { white-space: nowrap; padding: 0 12px; font-size: 12px; }
-  .tab-ct { font-size: 9px; padding: 1px 5px; }
+  .mobile-bottom-nav::-webkit-scrollbar { display: none; }
 
   /* Secondary tabs */
   .tabs-secondary { overflow-x: auto; flex-wrap: nowrap; padding: 0 12px; }
@@ -616,6 +620,22 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   .header-logo { height: 22px; }
   .header-logo-placeholder { font-size: 15px; }
 }
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-bottom-nav{display:none;}
+.mob-nav-btn{
+  flex:0 0 auto;width:68px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  border:none;background:none;cursor:pointer;font-family:inherit;
+  padding:8px 4px 10px;color:var(--text3);font-size:9.5px;font-weight:500;
+  transition:color .15s;position:relative;white-space:nowrap;
+}
+.mob-nav-btn.active{color:var(--azul);}
+.mob-nav-btn.active::before{
+  content:'';position:absolute;top:0;left:20%;right:20%;height:2px;
+  background:var(--azul);border-radius:0 0 3px 3px;
+}
+.mob-nav-icon{font-size:18px;line-height:1;}
 
 /* ── INPUTS PAGE ── */
 .inputs-page{max-width:860px;}
@@ -914,6 +934,34 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   </button>
   <button class="tab" data-primary="inputs" onclick="switchPrimary('inputs',this)">
     🔒 Inputs
+  </button>
+</nav>
+
+<!-- MOBILE BOTTOM NAV (visible only on mobile, replaces top tabs) -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+  <button class="mob-nav-btn active" data-primary="estoque" onclick="switchPrimary('estoque',this)">
+    <span class="mob-nav-icon">📦</span><span>Estoque</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="permanencias" onclick="switchPrimary('permanencias',this)">
+    <span class="mob-nav-icon">📊</span><span>Permanências</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="recebimentos" onclick="switchPrimary('recebimentos',this)">
+    <span class="mob-nav-icon">📥</span><span>Recebimentos</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="separacoes" onclick="switchPrimary('separacoes',this)">
+    <span class="mob-nav-icon">🚚</span><span>Separações</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="faturamentos" onclick="switchPrimary('faturamentos',this)">
+    <span class="mob-nav-icon">🧾</span><span>Faturam.</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="verificador" onclick="switchPrimary('verificador',this)">
+    <span class="mob-nav-icon">🔍</span><span>Verificador</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="cadastros" onclick="switchPrimary('cadastros',this)">
+    <span class="mob-nav-icon">🗂️</span><span>Cadastros</span>
+  </button>
+  <button class="mob-nav-btn" data-primary="inputs" onclick="switchPrimary('inputs',this)">
+    <span class="mob-nav-icon">🔒</span><span>Inputs</span>
   </button>
 </nav>
 
@@ -2227,6 +2275,14 @@ function sortTable(thEl, colIdx, numeric) {
   rows.sort((a, b) => {
     const ta = (a.cells[colIdx]?.textContent || '').trim();
     const tb = (b.cells[colIdx]?.textContent || '').trim();
+    if (numeric === 'date') {
+      const parseDate = s => { const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? new Date(+m[3],+m[2]-1,+m[1]).getTime() : 0; };
+      const da = parseDate(ta), db = parseDate(tb);
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return (da - db) * newDir;
+    }
     if (numeric) {
       // Formato BR: ponto = milhar, vírgula = decimal → remove pontos, troca vírgula por ponto
       const parseBR = s => parseFloat(s.replace(/[^\d,\-]/g,'').replace(',','.')) || 0;
@@ -2557,7 +2613,7 @@ function renderRecebimentos() {
       <thead><tr>
         <th class="sortable" onclick="sortTable(this,0,false)">SKU <span class="sort-icon">⇅</span></th>
         <th class="sortable" onclick="sortTable(this,1,false)">Produto <span class="sort-icon">⇅</span></th>
-        <th class="sortable" onclick="sortTable(this,2,false)">Provável Fat. <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,2,'date')">Provável Fat. <span class="sort-icon">⇅</span></th>
         <th class="th-r sortable" onclick="sortTable(this,3,true)">Programado <span class="sort-icon">⇅</span></th>
         <th class="th-r sortable" onclick="sortTable(this,4,true)">Realizado <span class="sort-icon">⇅</span></th>
         <th class="th-r sortable" onclick="sortTable(this,5,true)">Saldo <span class="sort-icon">⇅</span></th>
@@ -2886,6 +2942,10 @@ function renderCadastros() {
           <option value="">Todas</option>${brandOpts}
         </select>
       </div>
+      <div class="filter-sep"></div>
+      <div class="filter-actions-group">
+        <button class="quick-btn" onclick="limparFiltros('fbar-cadastros',renderCadastros)" style="color:var(--vermelho)">✕ Limpar</button>
+      </div>
     </div>`;
   }
 
@@ -3059,9 +3119,12 @@ const PRIMARY_DEFAULT = {
 let _lastActiveSub = {}; // remembers last sub-panel per primary
 
 function _switchPrimaryCore(name, el) {
-  // Deactivate all primary tabs
+  // Deactivate all primary tabs (desktop)
   document.querySelectorAll('.tabs-primary .tab').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
+  // Sync mobile bottom nav
+  document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.mob-nav-btn[data-primary="${name}"]`)?.classList.add('active');
 
   // Hide all panels
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -3362,6 +3425,7 @@ function renderSeparacoes(key) {
       </div>
       <div class="filter-sep"></div>
       <div class="filter-actions-group">
+        <button class="quick-btn" onclick="limparFiltros('fbar-sep-${key}',()=>renderSeparacoes('${key}'))" style="color:var(--vermelho)">✕ Limpar</button>
         <a href="https://docs.google.com/spreadsheets/d/${cfg.sid}/edit" target="_blank"
            style="color:var(--azul);font-size:11px;font-weight:600;text-decoration:none;
                   padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
@@ -3440,8 +3504,8 @@ function renderSeparacoes(key) {
   const tbl = `<div class="tbl-wrap"><table>
     <thead><tr>
       ${headers.map((h, ci) => `
-        <th class="${numCols.has(ci)?'th-r':''}" style="font-size:10px">
-          ${h.label}
+        <th class="${numCols.has(ci)?'th-r':''} sortable" onclick="sortTable(this,${ci},${numCols.has(ci)})" style="font-size:10px">
+          ${h.label} <span class="sort-icon">⇅</span>
           ${h.sublabel ? `<div style="font-size:9px;font-weight:400;color:var(--text3);margin-top:1px">${h.sublabel}</div>` : ''}
         </th>`).join('')}
     </tr></thead>
@@ -3701,6 +3765,10 @@ function renderBralog() {
           <option value="0"${prevEst==='0'?' selected':''}>Todos</option>
         </select>
       </div>
+      <div class="filter-sep"></div>
+      <div class="filter-actions-group">
+        <button class="quick-btn" onclick="limparFiltros('fbar-bralog',renderBralog)" style="color:var(--vermelho)">✕ Limpar</button>
+      </div>
     </div>`;
   }
 
@@ -3760,7 +3828,10 @@ function renderBralog() {
   const tbl = `<div class="tbl-wrap"><table>
     <thead>
     <tr>
-      <th rowspan="2">EAN</th><th rowspan="2">SKU</th><th rowspan="2">Produto</th><th rowspan="2">Marca</th>
+      <th class="sortable" onclick="sortTable(this,0,false)" rowspan="2">EAN <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,1,false)" rowspan="2">SKU <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,2,false)" rowspan="2">Produto <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,3,false)" rowspan="2">Marca <span class="sort-icon">⇅</span></th>
       ${showApice&&bralogApice.rows.length?`<th colspan="3" style="text-align:center;border-bottom:1px solid var(--border)">Ápice ES</th>`:''}
       ${showHubES&&bralogHubES.rows.length?`<th colspan="3" style="text-align:center;border-bottom:1px solid var(--border)">Beauty Hub ES</th>`:''}
       ${showHubRJ&&bralogHubRJ.rows.length?`<th colspan="3" style="text-align:center;border-bottom:1px solid var(--border)">Beauty Hub RJ</th>`:''}
@@ -3967,9 +4038,14 @@ function numCls(n) { return n>0?'num-pos':n<0?'num-neg':''; }
 
 const TITAN_BRANDS = ["BARBOUR'S","ÁPICE","LESCENT","KOKESHI","RITUÁRIA","BYSAMIA","AUÁ"];
 
-function titanFilterBar(id, onchange, withGrp=true) {
+function titanFilterBar(id, onchange, withGrp=true, fbarId='') {
   const cds = ['ES','RJ','SP'];
   const brandOpts = TITAN_BRANDS.map(b=>`<option value="${b}">${b}</option>`).join('');
+  const limparBtn = fbarId ? `
+    <div class="filter-sep"></div>
+    <div class="filter-actions-group">
+      <button class="quick-btn" onclick="limparFiltros('${fbarId}',${onchange})" style="color:var(--vermelho)">✕ Limpar</button>
+    </div>` : '';
   return `<div class="filter-bar">
     <div class="filter-group"><span class="filter-label">Buscar</span>
       <input class="search" type="text" id="srch-${id}" placeholder="EAN ou produto…" oninput="${onchange}()">
@@ -3993,6 +4069,7 @@ function titanFilterBar(id, onchange, withGrp=true) {
         <option value="">Todos</option>
       </select>
     </div>`:''}
+    ${limparBtn}
   </div>`;
 }
 
@@ -4053,7 +4130,12 @@ function renderTitanDisp() {
     const total = dRows.reduce((a,r)=>a+r.qtd,0);
     const tbl = `<table>
       <thead><tr>
-        <th>EAN</th><th>SKU</th><th>Marca</th><th>Produto</th><th>Grupo</th><th class="th-r">Qtd Un</th>
+        <th class="sortable" onclick="sortTable(this,0,false)">EAN <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,2,false)">Marca <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,3,false)">Produto <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,4,false)">Grupo <span class="sort-icon">⇅</span></th>
+        <th class="th-r sortable" onclick="sortTable(this,5,true)">Qtd Un <span class="sort-icon">⇅</span></th>
       </tr></thead>
       <tbody>
       ${dRows.sort((a,b)=>b.qtd-a.qtd).map(r=>`<tr>
@@ -4131,12 +4213,18 @@ function renderTitanAgProd() {
   }
 
   const cdCols = cd === 'RJ' ? ['RJ'] : cd === 'ES' ? ['ES'] : ['ES','RJ'];
+  const _esIdx  = 4;
+  const _rjIdx  = cdCols.includes('ES') ? 5 : 4;
+  const _totIdx = 4 + (cdCols.includes('ES')?1:0) + (cdCols.includes('RJ')?1:0);
   const tbl = `<div class="tbl-wrap"><table>
     <thead><tr>
-      <th>EAN</th><th>SKU</th><th>Marca</th><th>Produto</th>
-      ${cdCols.includes('ES')?'<th class="th-r">Ag.Prod ES</th>':''}
-      ${cdCols.includes('RJ')?'<th class="th-r">Ag.Prod RJ</th>':''}
-      <th class="th-r">Total</th>
+      <th class="sortable" onclick="sortTable(this,0,false)">EAN <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,2,false)">Marca <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,3,false)">Produto <span class="sort-icon">⇅</span></th>
+      ${cdCols.includes('ES')?`<th class="th-r sortable" onclick="sortTable(this,${_esIdx},true)">Ag.Prod ES <span class="sort-icon">⇅</span></th>`:''}
+      ${cdCols.includes('RJ')?`<th class="th-r sortable" onclick="sortTable(this,${_rjIdx},true)">Ag.Prod RJ <span class="sort-icon">⇅</span></th>`:''}
+      <th class="th-r sortable" onclick="sortTable(this,${_totIdx},true)">Total <span class="sort-icon">⇅</span></th>
     </tr></thead>
     <tbody>
     ${rows.map(r=>`<tr>
@@ -4235,10 +4323,15 @@ function renderTitanVend() {
 
   const tbl = `<div class="tbl-wrap"><table>
     <thead><tr>
-      <th>EAN</th><th>SKU</th><th>Marca</th><th>Produto</th><th>Grupo</th><th>CD</th>
-      <th class="th-r">Disponível</th>
-      <th class="th-r">Ag. Produção</th>
-      <th class="th-r">Vendável</th>
+      <th class="sortable" onclick="sortTable(this,0,false)">EAN <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,2,false)">Marca <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,3,false)">Produto <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,4,false)">Grupo <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,5,false)">CD <span class="sort-icon">⇅</span></th>
+      <th class="th-r sortable" onclick="sortTable(this,6,true)">Disponível <span class="sort-icon">⇅</span></th>
+      <th class="th-r sortable" onclick="sortTable(this,7,true)">Ag. Produção <span class="sort-icon">⇅</span></th>
+      <th class="th-r sortable" onclick="sortTable(this,8,true)">Vendável <span class="sort-icon">⇅</span></th>
     </tr></thead>
     <tbody>
     ${filtered.map(r=>`<tr>
@@ -4260,7 +4353,7 @@ function renderTitanVend() {
 // ── Init Titan filter bars ─────────────────────────────────────────────
 function initTitanBars() {
   const brandOpts = TITAN_BRANDS.map(b=>`<option value="${b}">${b}</option>`).join('');
-  const dispBar = titanFilterBar('tdisp','renderTitanDisp', true);
+  const dispBar = titanFilterBar('tdisp','renderTitanDisp', true, 'fbar-titan-disp');
   const agBar   = `<div class="filter-bar">
     <div class="filter-group"><span class="filter-label">Buscar</span>
       <input class="search" type="text" id="srch-tagprod" placeholder="EAN ou produto…" oninput="debounce(renderTitanAgProd,'tagprod')">
@@ -4279,8 +4372,12 @@ function initTitanBars() {
         <option value="RJ">RJ</option>
       </select>
     </div>
+    <div class="filter-sep"></div>
+    <div class="filter-actions-group">
+      <button class="quick-btn" onclick="limparFiltros('fbar-titan-agprod',renderTitanAgProd)" style="color:var(--vermelho)">✕ Limpar</button>
+    </div>
   </div>`;
-  const vendBar = titanFilterBar('tvend','renderTitanVend', true);
+  const vendBar = titanFilterBar('tvend','renderTitanVend', true, 'fbar-titan-vend');
 
   document.getElementById('fbar-titan-disp').innerHTML   = dispBar;
   document.getElementById('fbar-titan-agprod').innerHTML = agBar;
@@ -4700,6 +4797,10 @@ function renderProtheus() {
           <option value="1">Ativas + desativadas</option>
         </select>
       </div>
+      <div class="filter-sep"></div>
+      <div class="filter-actions-group">
+        <button class="quick-btn" onclick="protFiltros.semEstoque=true;protFiltros.desativ=false;limparFiltros('fbar-protheus',renderProtheus)" style="color:var(--vermelho)">✕ Limpar</button>
+      </div>
     </div>`;
   }
 
@@ -4762,10 +4863,11 @@ function renderProtheus() {
 
   const fmtN = n => n > 0 ? n.toLocaleString('pt-BR') : '—';
 
-  const filCols = filialVis.map(t => `
-    <th style="text-align:center;white-space:nowrap">
-      ${t.sheet}<br><span style="font-size:11px;font-weight:400;color:var(--text3)">${t.tipo==='Atacado'?'Atacado':'E-com'} · ${t.uf}</span>
+  const filCols = filialVis.map((t, fi) => `
+    <th class="th-r sortable" onclick="sortTable(this,${4+fi},true)" style="text-align:center;white-space:nowrap">
+      ${t.sheet}<br><span style="font-size:11px;font-weight:400;color:var(--text3)">${t.tipo==='Atacado'?'Atacado':'E-com'} · ${t.uf}</span> <span class="sort-icon">⇅</span>
     </th>`).join('');
+  const _totProtIdx = 4 + filialVis.length;
 
   const marcaCell = m => {
     if (!m) return '<span style="color:var(--text3)">—</span>';
@@ -4792,9 +4894,12 @@ function renderProtheus() {
 
   body.innerHTML = `<div class="table-wrap"><table class="data-table">
     <thead><tr>
-      <th>Marca</th><th>EAN</th><th>SKU</th><th>Produto</th>
+      <th class="sortable" onclick="sortTable(this,0,false)">Marca <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,1,false)">EAN <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,2,false)">SKU <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,3,false)">Produto <span class="sort-icon">⇅</span></th>
       ${filCols}
-      <th style="text-align:center">Total</th>
+      <th class="th-r sortable" onclick="sortTable(this,${_totProtIdx},true)" style="text-align:center">Total <span class="sort-icon">⇅</span></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
