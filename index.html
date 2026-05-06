@@ -304,6 +304,7 @@ body{
 .filter-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:'Poppins',sans-serif;}
 .filter-sep{width:1px;height:30px;background:var(--border);align-self:flex-end;margin:0 2px;}
 .filter-actions{display:flex;gap:6px;align-self:flex-end;}
+.filter-actions-group{display:flex;flex-direction:row;gap:6px;flex-wrap:wrap;align-self:flex-end;}
 .quick-btn{
   background:var(--cinza-100);border:1px solid var(--border);
   border-radius:var(--radius-sm);padding:5px 11px;
@@ -531,8 +532,6 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   .header-subtitle, .header-divider { display: none; }
   .header-parent { font-size: 8px; }
   .header-right { gap: 6px; }
-  #theme-toggle { padding: 5px 8px; font-size: 13px; }
-
   /* Primary tabs: horizontally scrollable, no wrap */
   .tabs-primary {
     overflow-x: auto;
@@ -557,18 +556,25 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   .card-val { font-size: 22px; }
   .card-label { font-size: 10px; }
 
-  /* Filter bars: stack vertically */
-  .filter-bar { flex-direction: column; gap: 8px; align-items: stretch; padding: 10px; }
-  .filter-group { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+  /* Filter bars: 2-column grid on mobile */
+  .filter-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; padding: 10px; align-items: end; }
+  .filter-group { flex-direction: column; gap: 3px; align-items: stretch; justify-content: flex-start; }
   .filter-group .search,
   .filter-group .sel,
-  .filter-group .dt-input { flex: 1; min-width: 0; }
+  .filter-group .dt-input { width: 100% !important; min-width: 0; }
   .filter-sep { display: none; }
+  .filter-actions-group { grid-column: span 2; }
   .filter-bar .btn { width: 100%; justify-content: center; }
+
+  /* Touch-friendly input sizes */
+  .search, .sel, .dt-input { padding: 8px 10px; font-size: 13px; }
+  .quick-btn { padding: 7px 12px; font-size: 12px; }
 
   /* Tables: horizontal scroll */
   .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .tbl-wrap table { min-width: 600px; }
+  .tbl-wrap::-webkit-scrollbar { height: 3px; }
+  .tbl-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   .brand-hdr { font-size: 12px; padding: 8px 12px; }
 
   /* Search */
@@ -1957,7 +1963,8 @@ function initFilterBars() {
       </select>
     </div>
     <div class="filter-sep"></div>
-    <div class="filter-group" style="align-self:flex-end">
+    <div class="filter-actions-group">
+      <button class="quick-btn" onclick="limparFiltros('fbar-est',renderEstoque)" style="color:var(--vermelho)">✕ Limpar</button>
       <a href="https://docs.google.com/spreadsheets/d/${SID_EST}/edit" target="_blank" class="quick-btn">Abrir planilha ↗</a>
     </div>
   </div>`;
@@ -2001,7 +2008,8 @@ function initFilterBars() {
       </select>
     </div>
     <div class="filter-sep"></div>
-    <div class="filter-group" style="align-self:flex-end">
+    <div class="filter-actions-group">
+      <button class="quick-btn" onclick="limparFiltros('fbar-perm',renderPermanencias)" style="color:var(--vermelho)">✕ Limpar</button>
       <a href="https://docs.google.com/spreadsheets/d/${SID_EST}/edit" target="_blank" class="quick-btn">Abrir planilha ↗</a>
     </div>
   </div>`;
@@ -2041,7 +2049,8 @@ function initFilterBars() {
       </div>
     </div>
     <div class="filter-sep"></div>
-    <div class="filter-group" style="align-self:flex-end">
+    <div class="filter-actions-group">
+      <button class="quick-btn" onclick="limparFiltros('fbar-rec',renderRecebimentos)" style="color:var(--vermelho)">✕ Limpar</button>
       <a href="https://docs.google.com/spreadsheets/d/${SID_REC}/edit" target="_blank" class="quick-btn">Abrir planilha ↗</a>
     </div>
   </div>`;
@@ -2177,6 +2186,17 @@ function showAcima60() {
 
 // ── SORTABLE TABLES ──────────────────────────────────────────────────
 let _sortState = { col: null, dir: 1 };
+
+function limparFiltros(barId, renderFn) {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+  bar.querySelectorAll('input[type=text],input[type=url],input[type=number]').forEach(i => i.value = '');
+  bar.querySelectorAll('input[type=date]').forEach(i => i.value = '');
+  bar.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+  _recQuick = '';
+  ['30','60','90'].forEach(p => { const b = document.getElementById('qb-'+p); if(b) b.classList.remove('active-qb'); });
+  if (typeof renderFn === 'function') renderFn();
+}
 
 function sortTable(thEl, colIdx, numeric) {
   const table = thEl.closest('table');
@@ -2535,12 +2555,13 @@ function renderRecebimentos() {
     const sorted = sortByDate(bRows);
     const tbl = `<table>
       <thead><tr>
-        <th>SKU</th><th>Produto</th>
-        <th>Provável Fat.</th>
-        <th class="th-r">Programado</th>
-        <th class="th-r">Realizado</th>
-        <th class="th-r">Saldo</th>
-        <th>Status</th>
+        <th class="sortable" onclick="sortTable(this,0,false)">SKU <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,1,false)">Produto <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,2,false)">Provável Fat. <span class="sort-icon">⇅</span></th>
+        <th class="th-r sortable" onclick="sortTable(this,3,true)">Programado <span class="sort-icon">⇅</span></th>
+        <th class="th-r sortable" onclick="sortTable(this,4,true)">Realizado <span class="sort-icon">⇅</span></th>
+        <th class="th-r sortable" onclick="sortTable(this,5,true)">Saldo <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,6,false)">Status <span class="sort-icon">⇅</span></th>
       </tr></thead>
       <tbody>
       ${sorted.map(r => {
@@ -2740,15 +2761,17 @@ function parseFaturamentos(lines) {
 
     const rawDate = dateColIdx >= 0 ? (row[dateColIdx] || '').trim() : '';
     const dateObj = parseDateStr(formatSepDate(rawDate));
-    rows.push({ cells, dateObj });
+    rows.push({ cells, dateObj, rowIndex: rows.length });
   }
 
-  // Sort most recent first
+  // Sort most recent first; within same day, last row in sheet comes first (most recently added)
   rows.sort((a, b) => {
-    if (!a.dateObj && !b.dateObj) return 0;
+    if (!a.dateObj && !b.dateObj) return b.rowIndex - a.rowIndex;
     if (!a.dateObj) return 1;
     if (!b.dateObj) return -1;
-    return b.dateObj - a.dateObj;
+    const d = b.dateObj - a.dateObj;
+    if (d !== 0) return d;
+    return b.rowIndex - a.rowIndex;
   });
 
   return { rows, cols: resolved };
@@ -2791,7 +2814,10 @@ function renderFaturamentos() {
     fbar.innerHTML = `<div class="filter-bar">
       ${inputs}
       <div class="filter-sep"></div>
-      <a class="open-sheet-link" href="https://docs.google.com/spreadsheets/d/${FAT_SID}/edit" target="_blank">Abrir planilha ↗</a>
+      <div class="filter-actions-group">
+        <button class="quick-btn" onclick="limparFiltros('fbar-faturamentos',renderFaturamentos)" style="color:var(--vermelho)">✕ Limpar</button>
+        <a class="open-sheet-link quick-btn" href="https://docs.google.com/spreadsheets/d/${FAT_SID}/edit" target="_blank">Abrir planilha ↗</a>
+      </div>
     </div>`;
   }
 
@@ -2885,7 +2911,10 @@ function renderCadastros() {
   for (const [marca, mRows] of Object.entries(grouped)) {
     const tbl = `<table>
       <thead><tr>
-        <th>Marca</th><th>SKU</th><th>Nome do Produto</th><th>EAN</th>
+        <th class="sortable" onclick="sortTable(this,0,false)">Marca <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,2,false)">Nome do Produto <span class="sort-icon">⇅</span></th>
+        <th class="sortable" onclick="sortTable(this,3,false)">EAN <span class="sort-icon">⇅</span></th>
       </tr></thead>
       <tbody>
       ${mRows.map(r=>`<tr>
@@ -3332,7 +3361,7 @@ function renderSeparacoes(key) {
         <input type="date" class="dt-input" id="dt-sep-to-${key}" onchange="renderSeparacoes('${key}')">
       </div>
       <div class="filter-sep"></div>
-      <div class="filter-group" style="align-self:flex-end">
+      <div class="filter-actions-group">
         <a href="https://docs.google.com/spreadsheets/d/${cfg.sid}/edit" target="_blank"
            style="color:var(--azul);font-size:11px;font-weight:600;text-decoration:none;
                   padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
@@ -4432,6 +4461,10 @@ function renderVerificador() {
           <option value="50">≥ 50% de diferença</option>
         </select>
       </div>
+      <div class="filter-sep"></div>
+      <div class="filter-actions-group">
+        <button class="quick-btn" onclick="limparFiltros('fbar-verificador',renderVerificador)" style="color:var(--vermelho)">✕ Limpar</button>
+      </div>
     </div>`;
   }
 
@@ -4570,7 +4603,10 @@ function renderVerificador() {
   if (ecomRows.length && canal !== 'atac') {
     html += `<div class="verif-section-title">📦 E-commerce — Titan Vendável vs Protheus</div>`;
     html += `<div class="tbl-wrap"><table><thead><tr>
-      <th>EAN</th><th>SKU</th><th>Produto</th><th>Marca</th>
+      <th class="sortable" onclick="sortTable(this,0,false)">EAN <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,2,false)">Produto <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,3,false)">Marca <span class="sort-icon">⇅</span></th>
       ${ufFlt!=='RJ'?`<th style="text-align:center;color:var(--azul)">Titan ES</th><th style="text-align:center;color:var(--laranja)">Protheus ES</th><th colspan="2" style="text-align:center">Δ ES</th>`:''}
       ${ufFlt!=='ES'?`<th style="text-align:center;color:var(--azul)">Titan RJ</th><th style="text-align:center;color:var(--laranja)">Protheus RJ</th><th colspan="2" style="text-align:center">Δ RJ</th>`:''}
     </tr></thead><tbody>
@@ -4597,7 +4633,10 @@ function renderVerificador() {
   if (atacRows.length && canal !== 'ecom') {
     html += `<div class="verif-section-title">🏪 Atacado — Beauty Hub (Bralog) vs Protheus</div>`;
     html += `<div class="tbl-wrap"><table><thead><tr>
-      <th>EAN</th><th>SKU</th><th>Produto</th><th>Marca</th>
+      <th class="sortable" onclick="sortTable(this,0,false)">EAN <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,1,false)">SKU <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,2,false)">Produto <span class="sort-icon">⇅</span></th>
+      <th class="sortable" onclick="sortTable(this,3,false)">Marca <span class="sort-icon">⇅</span></th>
       ${ufFlt!=='RJ'?`<th style="text-align:center;color:#16a34a">Hub ES<br><span style="font-size:9px;font-weight:400">Bralog</span></th><th style="text-align:center;color:var(--laranja)">1301<br><span style="font-size:9px;font-weight:400">Protheus ES</span></th><th colspan="2" style="text-align:center">Δ ES</th>`:''}
       ${ufFlt!=='ES'?`<th style="text-align:center;color:#16a34a">Hub RJ<br><span style="font-size:9px;font-weight:400">Bralog</span></th><th style="text-align:center;color:var(--laranja)">1303<br><span style="font-size:9px;font-weight:400">Protheus RJ</span></th><th colspan="2" style="text-align:center">Δ RJ</th>`:''}
       <th style="text-align:center;color:var(--laranja)">1302<br><span style="font-size:9px;font-weight:400">Protheus SP</span></th>
