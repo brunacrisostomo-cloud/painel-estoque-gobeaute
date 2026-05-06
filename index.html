@@ -524,6 +524,8 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   padding:12px 16px;margin-bottom:16px;font-size:12px;line-height:1.6;
 }
 
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-bottom-nav{display:none;}
 
 @media(max-width:768px){
   /* Layout */
@@ -612,6 +614,21 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   /* Btn */
   .btn { font-size: 11px; padding: 7px 12px; }
   .btn svg { width: 11px; height: 11px; }
+
+  /* Tables: smaller cells on mobile */
+  .tbl th, .tbl td { font-size: 10px; padding: 5px 7px; }
+  .tbl-sm th, .tbl-sm td { font-size: 10px; padding: 4px 6px; }
+  .brand-hdr { font-size: 11px; padding: 6px 10px; }
+  .card-val { font-size: 18px; }
+  .card-label { font-size: 9.5px; }
+  .card { padding: 10px; }
+  .cards { gap: 6px; }
+  .search, .sel, .dt-input { padding: 6px 8px; font-size: 12px; }
+  .filter-bar { gap: 6px 8px; padding: 8px; }
+  .section-title { font-size: 13px; }
+  .kpi-card { padding: 10px; }
+  .kpi-val { font-size: 18px; }
+  .perm-val { font-size: 10px; }
 }
 
 @media(max-width:480px){
@@ -621,8 +638,6 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   .header-logo-placeholder { font-size: 15px; }
 }
 
-/* ── MOBILE BOTTOM NAV ── */
-.mobile-bottom-nav{display:none;}
 .mob-nav-btn{
   flex:0 0 auto;width:68px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -5383,8 +5398,9 @@ const ALLOWED_DOMAINS = ['gocase.com', 'gobeaute.com.br'];
 
 function onGoogleLogin(response) {
   try {
-    // Decode JWT payload
-    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    // Decode JWT payload (TextDecoder handles UTF-8 chars like accented names)
+    const b64 = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const payload = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0))));
     const email   = payload.email || '';
     const domain  = email.split('@')[1] || '';
 
