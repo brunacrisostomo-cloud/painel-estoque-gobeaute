@@ -131,7 +131,10 @@ body{
   border-bottom:1px solid var(--border);
   padding:0 32px;
   display:flex;gap:0;
+  overflow-x:auto;
+  scrollbar-width:none;
 }
+.tabs::-webkit-scrollbar{display:none;}
 .tab{
   padding:14px 20px;font-size:12.5px;font-weight:500;
   color:var(--text3);background:none;border:none;
@@ -292,6 +295,8 @@ body{
 .main{padding:24px 28px;}
 .panel{display:none;}
 .panel.active{display:block;}
+/* Container interno para limitar largura em telas muito largas */
+.panel-inner{max-width:1600px;}
 
 /* ── FILTER BAR ── */
 .filter-bar{
@@ -351,7 +356,7 @@ body{
   pointer-events:none;
 }
 .card-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;font-family:'Poppins',sans-serif;}
-.card-val{font-size:26px;font-weight:800;line-height:1;letter-spacing:-.5px;color:var(--azul);font-family:'Poppins',sans-serif;}
+.card-val{font-size:clamp(18px,2.2vw,26px);font-weight:800;line-height:1;letter-spacing:-.5px;color:var(--azul);font-family:'Poppins',sans-serif;}
 .cv-purple{color:#5b21b6;}
 .cv-green {color:#059669;}
 .cv-yellow{color:#d97706;}
@@ -400,7 +405,9 @@ body{
 .brand-count{font-size:11px;color:var(--text3);font-weight:500;}
 
 /* ── TABLE ── */
-.tbl-wrap{overflow:auto;max-height:calc(100vh - 200px);background:var(--branco);}
+.tbl-wrap{overflow:auto;max-height:calc(100vh - 220px);background:var(--branco);}
+.tbl-wrap::-webkit-scrollbar{width:5px;height:5px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--cinza-300);border-radius:4px;}
 table{width:100%;border-collapse:collapse;font-size:12px;}
 thead th{
   position:sticky;top:0;z-index:2;
@@ -531,8 +538,7 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   /* Layout */
   .main { padding: 10px; padding-bottom: 74px; }
   .header { padding: 0 12px; height: 52px; }
-  .header-subtitle, .header-divider { display: none; }
-  .header-parent { font-size: 8px; }
+  .header-subtitle, .header-divider, .header-brand-stack { display: none; }
   .header-right { gap: 6px; }
   /* Hide top tabs on mobile — bottom nav replaces them */
   .tabs-primary { display: none !important; }
@@ -636,7 +642,84 @@ thead th.sortable.sorted-desc .sort-icon{opacity:1;}
   .tab { padding: 0 8px; font-size: 11px; }
   .header-logo { height: 22px; }
   .header-logo-placeholder { font-size: 15px; }
+  .card-val { font-size: 16px; }
+  .card { padding: 8px 10px; }
+  .cards { gap: 6px; }
+  .tbl-wrap table { min-width: 480px; }
 }
+
+/* ── RESPONSIVE: TABLET / JANELA MÉDIA ─────────────────────────────── */
+
+/* Médio: 769-1200px — laptop, janela não maximizada, tablet landscape */
+@media(min-width:769px) and (max-width:1200px){
+  .header     { padding: 0 20px; }
+  .tabs       { padding: 0 16px; }
+  .tabs-secondary { padding: 0 16px; }
+  .main       { padding: 16px 18px; }
+  .tab        { padding: 12px 14px; font-size: 12px; }
+  .tab-sub    { padding: 8px 12px; font-size: 11.5px; }
+  .tab-sys-badge { font-size: 8.5px; padding: 0 2px 0 8px; }
+  .cards      { gap: 10px; }
+  .card       { padding: 14px 16px; min-width: 120px; }
+  .card-val   { font-size: 22px; }
+  .filter-bar { padding: 10px 14px; gap: 8px 10px; }
+  .search     { width: 180px; }
+  .tbl-wrap   { max-height: calc(100vh - 220px); }
+  .inputs-page { max-width: 100%; }
+  .upload-card { min-width: 200px; }
+}
+
+/* Pequeno-médio: 641-768px — tablet portrait, telefone grande */
+@media(min-width:641px) and (max-width:768px){
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .card-val { font-size: 20px; }
+  .filter-bar { grid-template-columns: 1fr 1fr 1fr; }
+  .filter-actions-group { grid-column: span 3; }
+}
+
+/* Ajuste geral max-height das tabelas levando o bottom-nav em conta no mobile */
+@media(max-width:768px){
+  .tbl-wrap { max-height: calc(100vh - 180px); }
+  /* Oculta badges/separadores decorativos nas abas secundárias para economizar espaço */
+  .tab-sys-badge { display: none; }
+  .tab-sys-sep   { display: none; }
+  /* Aba secundária mais compacta */
+  .tab-sub .tab-ct { padding: 1px 5px; font-size: 9px; min-width: 16px; }
+  /* Brand block mais compacto */
+  .brand-count { display: none; }
+  .brand-hdr { gap: 7px; }
+  /* Filtros: label menor */
+  .filter-label { font-size: 9px; letter-spacing: .04em; }
+  /* Inputs page */
+  .inputs-page  { max-width: 100%; }
+  .inputs-title { font-size: 15px; }
+  /* Modal de senha */
+  .lock-card { width: min(92vw, 340px); padding: 28px 20px; }
+  /* Seção de uploads */
+  .upload-card { min-width: 0; max-width: 100%; }
+  /* Tabelas: colunas críticas, oculta EAN em telas muito pequenas */
+  .tbl-wrap table { min-width: 520px; }
+  /* Scroll horizontal suave em todas as nav areas */
+  .tabs-secondary { -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs-secondary::-webkit-scrollbar { display: none; }
+  /* Cards totalizadores: menor em mobile */
+  .cards { margin-bottom: 16px; }
+  /* Section title: menor */
+  .inputs-section-title { font-size: 13px; }
+  /* Divisor page */
+  .divisor-footer { gap: 14px; padding: 10px 12px; font-size: 11px; }
+  .divisor-section { font-size: 11px; }
+  /* Verificador */
+  .verif-legend { gap: 10px; font-size: 10px; }
+  .verif-section-title { font-size: 12px; padding: 8px 12px; }
+}
+
+/* ── SCROLLBARS: mais finos em desktop também ─── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cinza-300); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cinza-700); }
+* { scrollbar-width: thin; scrollbar-color: var(--cinza-300) transparent; }
 
 .mob-nav-btn{
   flex:0 0 auto;width:68px;
@@ -3622,29 +3705,43 @@ function parseBralogXlsx(wb) {
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rawRows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:true});
 
-  // Columns per user spec (0-based Excel column letters):
-  // A=0: Cód.Merc./SKU   B=1: Nome Mercadoria
-  // Q=16   R=17 (Qt.Disp — main)   S=18
-  const COL_SKU  = 0;
-  const COL_NOME = 1;
-  const COL_Q    = 16;
-  const COL_R    = 17; // Qt. Disp. — main availability
-  const COL_S    = 18;
-
-  // Find header row (look for the row where col 0 has "cód" or "merc")
+  // Find header row: scan for the row that has "cód" or "cod" AND "mercadoria"/"nome"
+  // anywhere in the row (not just fixed column), to handle offset/empty leading columns
   let hdrIdx = 6;
   for (let i = 0; i < Math.min(12, rawRows.length); i++) {
-    const a = String(rawRows[i][COL_SKU]  || '').toLowerCase();
-    const b = String(rawRows[i][COL_NOME] || '').toLowerCase();
-    if (a.includes('cód') || a.includes('cod') || b.includes('mercadoria') || b.includes('nome merc')) {
-      hdrIdx = i; break;
-    }
+    const row = rawRows[i];
+    const hasCod  = row.some(c => { const v = String(c||'').toLowerCase(); return v.includes('cód') || v === 'cod. merc.' || v === 'cód. merc.'; });
+    const hasNome = row.some(c => { const v = String(c||'').toLowerCase(); return v.includes('mercadoria') || v === 'nome merc' || v === 'nome mercadoria'; });
+    if (hasCod && hasNome) { hdrIdx = i; break; }
   }
 
   const hdrRow = rawRows[hdrIdx];
-  const labelQ = String(hdrRow[COL_Q] || 'Qt. Q').trim();
-  const labelR = String(hdrRow[COL_R] || 'Qt. Disp.').trim();
-  const labelS = String(hdrRow[COL_S] || 'Qt. S').trim();
+
+  // Find column indices dynamically by header name
+  let COL_SKU = -1, COL_NOME = -1, COL_Q = -1, COL_R = -1, COL_S = -1;
+  hdrRow.forEach((h, i) => {
+    const v = String(h || '').toLowerCase().trim()
+      .normalize('NFD').replace(/[̀-ͯ]/g, ''); // strip accents
+    if (v.includes('cod') && v.includes('merc') && COL_SKU < 0)  COL_SKU  = i;
+    if ((v.includes('nome') || v === 'nome mercadoria') && v.includes('mercad') && COL_NOME < 0) COL_NOME = i;
+    // Qt. DS s/ NF  (column Q)
+    if (v.includes('ds') && v.includes('s/') && v.includes('nf') && COL_Q < 0) COL_Q = i;
+    // Qt. Disp - DS  (column R) — has both "disp" and "ds"
+    if (v.includes('disp') && v.includes('ds') && COL_R < 0) COL_R = i;
+    // Qt. Disp.  (column S) — has "disp" but NOT "ds"
+    if (v.includes('disp') && !v.includes('ds') && COL_S < 0) COL_S = i;
+  });
+
+  // Fallback to positional defaults if header detection failed
+  if (COL_SKU  < 0) COL_SKU  = 0;
+  if (COL_NOME < 0) COL_NOME = 1;
+  if (COL_Q    < 0) COL_Q    = 16;
+  if (COL_R    < 0) COL_R    = 17;
+  if (COL_S    < 0) COL_S    = 18;
+
+  const labelQ = String(hdrRow[COL_Q] || 'Qt. DS s/NF').trim();
+  const labelR = String(hdrRow[COL_R] || 'Qt. Disp - DS').trim();
+  const labelS = String(hdrRow[COL_S] || 'Qt. Disp.').trim();
 
   const toNum = v => {
     if (typeof v === 'number') return v;
@@ -3653,8 +3750,9 @@ function parseBralogXlsx(wb) {
     return parseFloat(s) || 0;
   };
 
-  console.log(`[Bralog] hdrIdx=${hdrIdx} labels: Q="${labelQ}" R="${labelR}" S="${labelS}"`);
-  console.log('[Bralog] hdr row sample:', rawRows[hdrIdx].slice(0,5), '...', rawRows[hdrIdx].slice(14,20));
+  console.log(`[Bralog] hdrIdx=${hdrIdx} cols: SKU=${COL_SKU} NOME=${COL_NOME} Q=${COL_Q} R=${COL_R} S=${COL_S}`);
+  console.log(`[Bralog] labels: Q="${labelQ}" R="${labelR}" S="${labelS}"`);
+  console.log('[Bralog] hdr row:', hdrRow.map((h,i)=>`${i}:${h}`).filter((_,i)=>i<20).join(' | '));
 
   const rows = [];
   for (let i = hdrIdx + 1; i < rawRows.length; i++) {
@@ -3666,7 +3764,7 @@ function parseBralogXlsx(wb) {
     rows.push({
       cod, nome,
       qtQ: toNum(r[COL_Q]),
-      qtR: toNum(r[COL_R]),  // main: Qt. Disp.
+      qtR: toNum(r[COL_R]),  // main: Qt. Disp - DS (coluna R)
       qtS: toNum(r[COL_S]),
     });
   }
@@ -3894,37 +3992,93 @@ function findHdrRow(rows, ...keywords) {
   return 1; // fallback
 }
 
+// Infere CD a partir do nome do depositante (fallback quando CNPJ não está mapeado)
+function cdFromDep(dep) {
+  const u = (dep || '').toUpperCase();
+  if (/\bES\b/.test(u)) return 'ES';
+  if (/\bRJ\b/.test(u)) return 'RJ';
+  if (/\bSP\b/.test(u)) return 'SP';
+  return '?';
+}
+
 function parseDispXlsx(wb) {
   const ws   = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:true});
 
-  // Detecta linha de cabeçalho: deve ter 'produto' E 'depositante'
-  const hdrIdx = findHdrRow(rows, 'produto', 'depositante');
-  const hdr    = rows[hdrIdx].map(h => String(h||'').toLowerCase().trim());
+  // Detecta linha de cabeçalho: procura linha com 'produto' E ('deposit' OU 'depositante')
+  let hdrIdx = -1;
+  for (let i = 0; i < Math.min(8, rows.length); i++) {
+    const row = rows[i].map(h => String(h||'').toLowerCase());
+    const hasProd = row.some(h => h.includes('produto'));
+    const hasDep  = row.some(h => h.includes('deposit'));
+    if (hasProd && hasDep) { hdrIdx = i; break; }
+  }
+  if (hdrIdx < 0) hdrIdx = findHdrRow(rows, 'produto', 'qtd'); // fallback
 
-  const iCod   = hdr.findIndex(h => h.includes('produto') && h.includes('codigo'));
-  const iProd  = hdr.findIndex(h => h === 'produto');
-  const iQtd   = hdr.findIndex(h => h.includes('qtd') && h.includes('un'));
+  const hdr = rows[hdrIdx].map(h => String(h||'').toLowerCase().trim());
+
+  // EAN/código do produto: coluna com 'produto' e ('cod' ou 'ean')
+  const iCod = (() => {
+    let i = hdr.findIndex(h => h.includes('produto') && (h.includes('cod') || h.includes('ean')));
+    if (i >= 0) return i;
+    return hdr.findIndex(h => h.includes('produto') && h.includes('cod'));
+  })();
+
+  // Nome do produto: coluna exatamente 'produto' (sem 'cod')
+  const iProd = hdr.findIndex(h => h === 'produto' || (h.includes('produto') && !h.includes('cod')));
+
+  // Quantidade disponível: 'qtd un' ou 'qtd disp' — exclui 'uc' e 'end'
+  const iQtd = (() => {
+    // Preferência 1: coluna que tenha 'qtd' + 'disp'
+    let i = hdr.findIndex(h => h.includes('qtd') && h.includes('disp'));
+    if (i >= 0) return i;
+    // Preferência 2: coluna 'qtd un' mas NÃO 'uc' nem 'end' nem 'cx'
+    i = hdr.findIndex(h =>
+      h.includes('qtd') && h.includes('un') &&
+      !h.includes('uc') && !h.includes('end') && !h.includes('cx'));
+    if (i >= 0) return i;
+    // Preferência 3: qualquer 'qtd' que não seja 'uc' nem 'end'
+    i = hdr.findIndex(h =>
+      h.startsWith('qtd') && !h.includes('uc') && !h.includes('end') && !h.includes('cx'));
+    return i;
+  })();
+
   const iGrupo = hdr.findIndex(h => h === 'grupo');
-  const iDep   = hdr.findIndex(h => h.includes('depositante'));
-  const iCnpj  = hdr.findIndex(h => h.includes('cod') && h.includes('dep'));
+  const iSubGrupo = hdr.findIndex(h => h.includes('subgru') || h.includes('subgrupo'));
+
+  // Depositante: coluna com 'depositante' ou prefixo 'deposit'
+  const iDep = hdr.findIndex(h => h.includes('deposit'));
+
+  // CNPJ: coluna com 'cnpj' OU ('cod' + 'dep') OU 'id deposit'
+  const iCnpj = (() => {
+    let i = hdr.findIndex(h => h.includes('cnpj'));
+    if (i >= 0) return i;
+    i = hdr.findIndex(h => h.includes('cod') && h.includes('dep'));
+    if (i >= 0) return i;
+    return hdr.findIndex(h => h === 'cod de' || h === 'código depositante' || h === 'cod depositante');
+  })();
+
+  console.log(`[Disp] hdrIdx=${hdrIdx}`);
+  console.log(`[Disp] cols: cod=${iCod}("${hdr[iCod]}") prod=${iProd}("${hdr[iProd]}") qtd=${iQtd}("${hdr[iQtd]}") dep=${iDep}("${hdr[iDep]}") cnpj=${iCnpj}("${hdr[iCnpj]}")`);
+  console.log(`[Disp] hdr row:`, hdr.map((h,i) => `${i}:${h}`).join(' | '));
 
   const result = [];
   for (let i = hdrIdx + 1; i < rows.length; i++) {
     const r   = rows[i];
     const ean = cellToStr(r[iCod]);
-    const dep = cellToStr(r[iDep]);
+    const dep = iDep >= 0 ? cellToStr(r[iDep]) : '';
     if (!ean || ean.length < 6) continue;
-    const qtd  = parseFloat(r[iQtd]) || 0;
+    const qtd = parseFloat(r[iQtd]) || 0;
     if (qtd === 0) continue;
     // CNPJ: pode ser número enorme — Math.round para evitar float
-    const cnpjRaw = r[iCnpj];
-    const cnpj = cnpjRaw != null ? Math.round(Number(cnpjRaw)).toString().replace(/\D/g,'') : '';
-    const cd   = CNPJ_CD[cnpj] || '?';
+    const cnpjRaw = iCnpj >= 0 ? r[iCnpj] : null;
+    const cnpj = cnpjRaw != null && cnpjRaw !== '' ? Math.round(Number(cnpjRaw)).toString().replace(/\D/g,'') : '';
+    const cd   = CNPJ_CD[cnpj] || cdFromDep(dep) || '?';
     result.push({
       ean,
       produto:     cellToStr(r[iProd]),
-      grupo:       cellToStr(r[iGrupo]),
+      grupo:       iGrupo >= 0 ? cellToStr(r[iGrupo]) : '',
+      subgrupo:    iSubGrupo >= 0 ? cellToStr(r[iSubGrupo]) : '',
       depositante: dep,
       cnpj,
       cd,
@@ -3932,7 +4086,7 @@ function parseDispXlsx(wb) {
       qtd,
     });
   }
-  console.log(`[Disp] hdrIdx=${hdrIdx} cols: cod=${iCod} prod=${iProd} qtd=${iQtd} dep=${iDep} cnpj=${iCnpj} → ${result.length} linhas`);
+  console.log(`[Disp] ${result.length} linhas. Amostra:`, result.slice(0,3).map(r => `EAN=${r.ean} dep=${r.depositante} cd=${r.cd} qtd=${r.qtd}`));
   return result;
 }
 
@@ -3940,13 +4094,41 @@ function parseAgXlsx(wb) {
   const ws   = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:true});
 
-  // Detecta linha de cabeçalho: deve ter 'quantidade' E ('codigo' OU 'descri')
-  const hdrIdx = findHdrRow(rows, 'quantidade', 'descri');
-  const hdr    = rows[hdrIdx].map(h => String(h||'').toLowerCase().trim());
+  // Detecta linha de cabeçalho: procura linha com 'quantidade' E ('ean' OU 'codigo' OU 'descri')
+  let hdrIdx = -1;
+  for (let i = 0; i < Math.min(8, rows.length); i++) {
+    const row = rows[i].map(h => String(h||'').toLowerCase());
+    const hasQtd  = row.some(h => h.includes('quantidade') || h.includes('qtd'));
+    const hasKey  = row.some(h => h === 'ean' || h.includes('codigo') || h.includes('código') || h.includes('descri'));
+    if (hasQtd && hasKey) { hdrIdx = i; break; }
+  }
+  if (hdrIdx < 0) hdrIdx = findHdrRow(rows, 'quantidade', 'descri');
 
-  const iEan  = hdr.findIndex(h => h.includes('c') && h.includes('digo') || h === 'ean' || h === 'código');
+  const hdr = rows[hdrIdx].map(h => String(h||'').toLowerCase().trim());
+
+  // EAN: preferir coluna exatamente 'ean', depois 'código ean', depois 'codigo' (fallback)
+  const iEan = (() => {
+    let i = hdr.findIndex(h => h === 'ean');
+    if (i >= 0) return i;
+    i = hdr.findIndex(h => h.includes('ean'));
+    if (i >= 0) return i;
+    // fallback: código/cod
+    return hdr.findIndex(h => (h.includes('c') && h.includes('digo')) || h === 'código' || h === 'codigo');
+  })();
+
   const iDesc = hdr.findIndex(h => h.includes('descri'));
-  const iQtd  = hdr.findIndex(h => h.includes('quantidade'));
+
+  // Quantidade: prefere 'quantidade' exata, depois qualquer 'qtd' que não seja 'valor'
+  const iQtd = (() => {
+    let i = hdr.findIndex(h => h === 'quantidade');
+    if (i >= 0) return i;
+    i = hdr.findIndex(h => h.includes('quantidade') && !h.includes('valor'));
+    if (i >= 0) return i;
+    return hdr.findIndex(h => h.startsWith('qtd') && !h.includes('valor'));
+  })();
+
+  console.log(`[AgProd] hdrIdx=${hdrIdx} cols: ean=${iEan}("${hdr[iEan]}") desc=${iDesc}("${hdr[iDesc]}") qtd=${iQtd}("${hdr[iQtd]}")`);
+  console.log(`[AgProd] hdr row:`, hdr.map((h,i) => `${i}:${h}`).join(' | '));
 
   const result = [];
   for (let i = hdrIdx + 1; i < rows.length; i++) {
@@ -3957,7 +4139,7 @@ function parseAgXlsx(wb) {
     if (qtd === 0) continue;
     result.push({ ean, produto: cellToStr(r[iDesc]), qtd });
   }
-  console.log(`[AgProd] hdrIdx=${hdrIdx} cols: ean=${iEan} desc=${iDesc} qtd=${iQtd} → ${result.length} linhas`);
+  console.log(`[AgProd] ${result.length} linhas. Amostra:`, result.slice(0,3).map(r => `EAN=${r.ean} qtd=${r.qtd}`));
   return result;
 }
 
