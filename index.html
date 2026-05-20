@@ -3326,13 +3326,13 @@ function cancelInputsLock() {
 
 // ── SEPARAÇÕES ────────────────────────────────────────────────────────
 const SEP_BRANDS = {
-  apice:    { label:"Ápice",     sid:'1n6sEndeVPrEE5cWoNusAsbeQ3x7JUKcU', brand:'ÁPICE'    },
-  barbours: { label:"Barbour's", sid:'12n1UbxjyJHBT-6aeracfUyzS03sUZwYZ', brand:"BARBOUR'S"},
-  lescent:  { label:'Lescent',   sid:'1w1cNYEITegB9r6TMDSUDnHfF4gsqq7OM', brand:'LESCENT'  },
-  kokeshi:  { label:'Kokeshi',   sid:'1JyVCbb0FmmOMQMNf-qu-ksD4PGhJp4f0', brand:'KOKESHI'  },
-  rituaria: { label:'Rituária',  sid:'1uiu_tszTJCQxECUNrWmZWQeceVkrdtfm', brand:'RITUÁRIA' },
-  bysamia:  { label:'By Samia',  sid:'1dhVfVnKMryhKqwPHZaLHwCsc--4SAFeS', brand:'BYSAMIA'  },
-  aua:      { label:'Auá',       sid:'1HCUkbN8YS5oT0kBNTK4lkaOS2JUTX22e', brand:'AUÁ'      },
+  apice:    { label:"Ápice",     sid:'1H0xMXopme8RYdD6a4QXkDdGKvKgwNhncHVoXohDgELc', brand:'ÁPICE',     cols:[0,1,2,3,4,5,6,8,9]    },
+  barbours: { label:"Barbour's", sid:'10PebxZFZ13kAx_ep6ajnJiXc23pxirb9XsOAafxwL-c', brand:"BARBOUR'S", cols:[0,1,2,3,4,6,7,8,9,10] },
+  lescent:  { label:'Lescent',   sid:'1zl-4XB9KN56L7FVwWoDa4xXvF6v5QClUGZNFC_kUdDs', brand:'LESCENT',   cols:[0,1,2,3,4,6,7,8]      },
+  kokeshi:  { label:'Kokeshi',   sid:'130BLfcD4p2_8D_JSgH6gJ974HuTZKWAKuCaYSAvtEBs', brand:'KOKESHI',   cols:[0,1,2,3,4,6,7,9]      },
+  rituaria: { label:'Rituária',  sid:'1McD8DzrKgE2jdhpE6raq4cCGEDhuoFYu20Y0yhBtVxk', brand:'RITUÁRIA',  cols:[0,1,2,3,5,6,7,8]      },
+  bysamia:  { label:'By Samia',  sid:'1ijQMtOe90OHhNET3yCcfnwyjA9GUq3qrbMUxWptpuNE', brand:'BYSAMIA',   cols:[0,1,2,3,4,7,8]        },
+  aua:      { label:'Auá',       sid:'1d31NJYujhlyjjPbw_fc_Fqr5TB2mBweyJYJ8VHa3tco', brand:'AUÁ',        cols:[0,1,2,3,4,5,7,8]      },
 };
 
 // Store loaded data per brand key
@@ -3357,7 +3357,7 @@ async function loadSeparacoesAll() {
   await Promise.all(Object.entries(SEP_BRANDS).map(async ([key, cfg]) => {
     try {
       const lines = await fetchSepCSV(cfg.sid);
-      const parsed = parseSeparacoes(lines, cfg.brand);
+      const parsed = parseSeparacoes(lines, cfg.brand, cfg.cols);
       sepData[key] = parsed;
       sepLoaded.add(key);
     } catch(e) {
@@ -3381,7 +3381,7 @@ function sepColExcluded(label) {
   return SEP_EXCLUDE_COLS.some(ex => l.includes(ex));
 }
 
-function parseSeparacoes(lines, brand) {
+function parseSeparacoes(lines, brand, allowCols) {
   if (!lines || lines.length < 2) return { rows:[], headers:[] };
 
   // Find the main header row — contains "sku" OR "cnpj" OR "origem" OR "data da"
@@ -3402,7 +3402,11 @@ function parseSeparacoes(lines, brand) {
 
   // Find DESCRIÇÃO column index — cut off here (don't show NF / OBS columns after it)
   const iDescRaw = hdrRow.findIndex(h => lc(h).includes('descri'));
-  const lastUsed = iDescRaw >= 0 ? iDescRaw : hdrRow.reduce((m, v, i) => (v ? i : m), 0);
+  const maxAllowCol = allowCols ? Math.max(...allowCols) : -1;
+  const lastUsed = Math.max(
+    iDescRaw >= 0 ? iDescRaw : hdrRow.reduce((m, v, i) => (v ? i : m), 0),
+    maxAllowCol
+  );
 
   // Build enriched headers
   const headers = [];
@@ -3419,13 +3423,13 @@ function parseSeparacoes(lines, brand) {
     headers.push({ i, label, sublabel, isDate, isQty });
   }
 
-  // Remove excluded columns (SP-Itapevi etc.), but always keep SKU/data/desc columns
-  const headersFiltered = headers.filter(h => {
-    if (lc(h.label).includes('sku') || h.isDate || lc(h.label).includes('descri') || lc(h.label).includes('nome')) return true;
-    return !sepColExcluded(h.label);
-  });
-  // Remap: only keep columns present in headersFiltered
-  const keepSet = new Set(headersFiltered.map(h=>h.i));
+  // Filter columns: use explicit allowlist if provided, otherwise fall back to name-based exclusion
+  const headersFiltered = allowCols
+    ? headers.filter(h => allowCols.includes(h.i))
+    : headers.filter(h => {
+        if (lc(h.label).includes('sku') || h.isDate || lc(h.label).includes('descri') || lc(h.label).includes('nome')) return true;
+        return !sepColExcluded(h.label);
+      });
   // Re-assign headers to filtered list (cells will be indexed by position in headersFiltered)
   const headersOut = headersFiltered;
 
